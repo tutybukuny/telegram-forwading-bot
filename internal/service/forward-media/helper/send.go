@@ -66,6 +66,9 @@ func (h *MediaGroupSendHelper) buildFile(files []any, message *tgbotapi.Message)
 	if message.Audio != nil {
 		files = append(files, tgbotapi.NewInputMediaAudio(tgbotapi.FileID(message.Audio.FileID)))
 	}
+	if message.Animation != nil {
+		files = append(files, tgbotapi.FileID(message.Animation.FileID))
+	}
 
 	return files
 }
@@ -74,6 +77,20 @@ func (h *MediaGroupSendHelper) sendMessage(files []any) {
 	if len(files) == 0 {
 		return
 	}
+
+	if fileID, ok := files[0].(tgbotapi.FileID); len(files) == 1 && ok {
+		msg := tgbotapi.NewAnimation(0, fileID)
+		for _, forwardToID := range h.ForwardToIDs {
+			msg.ChatID = forwardToID
+			sentMsg, err := h.teleBot.Send(msg)
+			if err != nil {
+				h.ll.Error("error when sent message", l.Object("msg", msg), l.Error(err))
+			}
+			h.ll.Debug("sent message", l.Object("sent_msg", sentMsg))
+		}
+		return
+	}
+
 	for _, forwardToID := range h.ForwardToIDs {
 		msg := tgbotapi.NewMediaGroup(forwardToID, files)
 		sentMsg, err := h.teleBot.SendMediaGroup(msg)

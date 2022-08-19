@@ -75,5 +75,5 @@ func (s *serviceImpl) initHelpers() {
 }
 
 func (s *serviceImpl) isMediaMessage(message *tgbotapi.Message) bool {
-	return message.Video != nil || len(message.Photo) > 0 || message.Audio != nil
+	return message.Video != nil || len(message.Photo) > 0 || message.Audio != nil || message.Animation != nil
 }
