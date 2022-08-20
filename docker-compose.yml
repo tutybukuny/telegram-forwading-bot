@@ -1,6 +1,17 @@
 version: "3.3"
 
 services:
+  mysql:
+    image: mysql:8.0.26
+    container_name: mysql
+    restart: always
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+    volumes:
+      - ./db:/var/lib/mysql
+
   bot:
     build: .
     image: telegram-forwarding-bot
@@ -8,4 +19,5 @@ services:
     volumes:
       - ./.env:/app/.env
       - ./config.json:/app/config.json
-
+    depends_on:
+      - mysql
