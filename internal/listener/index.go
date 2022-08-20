@@ -4,8 +4,11 @@ import (
 	"context"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"gorm.io/gorm"
 
 	"forwarding-bot/config"
+	"forwarding-bot/internal/pkg/middleware"
+	commandservice "forwarding-bot/internal/service/command"
 	processservice "forwarding-bot/internal/service/forward-media"
 	"forwarding-bot/pkg/container"
 	"forwarding-bot/pkg/l"
@@ -19,6 +22,7 @@ type TelegramListener struct {
 	teleBot *tgbotapi.BotAPI `container:"name"`
 
 	processService processservice.IService `container:"name"`
+	commandService commandservice.IService `container:"name"`
 }
 
 func New(cfg *config.Config) *TelegramListener {
@@ -36,6 +40,10 @@ func (tl *TelegramListener) Listen() {
 	}
 
 	updates := tl.teleBot.GetUpdatesChan(u)
+	ctx := context.Background()
+	var db *gorm.DB
+	container.NamedResolve(&db, "db")
+
 	for update := range updates {
 		if update.Message == nil {
 			continue
@@ -44,6 +52,17 @@ func (tl *TelegramListener) Listen() {
 		message := update.Message
 		tl.ll.Info("received message", l.Object("message", message))
 
-		tl.processService.ProcessMessage(context.Background(), message)
+		var err error
+		if message.IsCommand() {
+			err = middleware.NewGormTransaction(db, ctx, func(ctx context.Context) error {
+				return tl.commandService.ProcessCommand(ctx, message)
+			})
+		} else {
+			err = tl.processService.ProcessMessage(ctx, message)
+		}
+
+		if err != nil {
+			tl.ll.Error("error when handle message", l.Object("message", message), l.Error(err))
+		}
 	}
 }

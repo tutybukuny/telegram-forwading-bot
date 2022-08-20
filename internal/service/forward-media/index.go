@@ -6,36 +6,40 @@ import (
 	"os"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"gorm.io/gorm"
 
 	"forwarding-bot/config"
-	"forwarding-bot/internal/service/forward-media/helper"
+	"forwarding-bot/internal/pkg/config"
+	dbmessagehelper "forwarding-bot/internal/pkg/helper/db-message"
+	"forwarding-bot/internal/pkg/helper/media-group-raw"
+	mediamessagerepo "forwarding-bot/internal/repository/media-message"
 	"forwarding-bot/pkg/container"
+	"forwarding-bot/pkg/gpooling"
 	"forwarding-bot/pkg/json"
 	"forwarding-bot/pkg/l"
 )
 
-type ChannelConfigMap map[string]*ChannelConfig
-type SenderMap map[int64]helper.ISendHelper
-
-type ChannelConfig struct {
-	ChannelID    int64   `json:"channel_id,omitempty"`
-	ForwardToIDs []int64 `json:"forward_to_ids,omitempty"`
-}
-
 type IService interface {
-	ProcessMessage(ctx context.Context, message *tgbotapi.Message)
+	ProcessMessage(ctx context.Context, message *tgbotapi.Message) error
 }
 
 type serviceImpl struct {
-	ll      l.Logger         `container:"name"`
-	teleBot *tgbotapi.BotAPI `container:"name"`
+	ll               l.Logger               `container:"name"`
+	teleBot          *tgbotapi.BotAPI       `container:"name"`
+	gpooling         gpooling.IPool         `container:"name"`
+	db               *gorm.DB               `container:"name"`
+	mediaMessageRepo mediamessagerepo.IRepo `container:"name"`
 
-	channelConfig ChannelConfigMap
-	senderMap     SenderMap
+	channelConfig   serviceconfig.ChannelConfigMap
+	senderMap       serviceconfig.SenderMap
+	dbMessageHelper *dbmessagehelper.DBMessageHelper
 }
 
 func New(cfg *config.Config) *serviceImpl {
-	service := &serviceImpl{senderMap: make(map[int64]helper.ISendHelper)}
+	service := &serviceImpl{
+		senderMap:       make(map[int64]*mediagrouprawsendhelper.MediaGroupRawSendHelper),
+		dbMessageHelper: dbmessagehelper.New(),
+	}
 	container.Fill(service)
 
 	service.readConfig(cfg)
@@ -69,7 +73,7 @@ func (s *serviceImpl) readConfig(cfg *config.Config) {
 
 func (s *serviceImpl) initHelpers() {
 	for _, channelConfig := range s.channelConfig {
-		h := helper.New(channelConfig.ChannelID, channelConfig.ForwardToIDs)
+		h := mediagrouprawsendhelper.New(channelConfig.ChannelID, channelConfig.ForwardToIDs)
 		s.senderMap[h.ChannelID] = h
 	}
 }

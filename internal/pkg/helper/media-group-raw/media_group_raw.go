@@ -1,4 +1,4 @@
-package helper
+package mediagrouprawsendhelper
 
 import (
 	"time"
@@ -10,7 +10,7 @@ import (
 	"forwarding-bot/pkg/l"
 )
 
-type MediaGroupSendHelper struct {
+type MediaGroupRawSendHelper struct {
 	ll       l.Logger         `container:"name"`
 	teleBot  *tgbotapi.BotAPI `container:"name"`
 	gpooling gpooling.IPool   `container:"name"`
@@ -20,8 +20,8 @@ type MediaGroupSendHelper struct {
 	mediaGroupMap map[string]chan *tgbotapi.Message
 }
 
-func New(channelID int64, forwardToIDs []int64) *MediaGroupSendHelper {
-	h := &MediaGroupSendHelper{
+func New(channelID int64, forwardToIDs []int64) *MediaGroupRawSendHelper {
+	h := &MediaGroupRawSendHelper{
 		ChannelID:     channelID,
 		ForwardToIDs:  forwardToIDs,
 		mediaGroupMap: make(map[string]chan *tgbotapi.Message),
@@ -31,7 +31,7 @@ func New(channelID int64, forwardToIDs []int64) *MediaGroupSendHelper {
 	return h
 }
 
-func (h *MediaGroupSendHelper) Send(message *tgbotapi.Message) {
+func (h *MediaGroupRawSendHelper) Send(message *tgbotapi.Message) {
 	if message.MediaGroupID != "" {
 		messages, ok := h.mediaGroupMap[message.MediaGroupID]
 		if !ok {
@@ -52,7 +52,7 @@ func (h *MediaGroupSendHelper) Send(message *tgbotapi.Message) {
 	}
 }
 
-func (h *MediaGroupSendHelper) buildFile(files []any, message *tgbotapi.Message) []any {
+func (h *MediaGroupRawSendHelper) buildFile(files []any, message *tgbotapi.Message) []any {
 	if files == nil {
 		files = make([]any, 0, 1)
 	}
@@ -73,7 +73,7 @@ func (h *MediaGroupSendHelper) buildFile(files []any, message *tgbotapi.Message)
 	return files
 }
 
-func (h *MediaGroupSendHelper) sendMessage(files []any) {
+func (h *MediaGroupRawSendHelper) sendMessage(files []any) {
 	if len(files) == 0 {
 		return
 	}
@@ -101,7 +101,7 @@ func (h *MediaGroupSendHelper) sendMessage(files []any) {
 	}
 }
 
-func (h *MediaGroupSendHelper) sendGroupMessage(mediaGroupID string, messages chan *tgbotapi.Message) {
+func (h *MediaGroupRawSendHelper) sendGroupMessage(mediaGroupID string, messages chan *tgbotapi.Message) {
 	defer delete(h.mediaGroupMap, mediaGroupID)
 	defer close(messages)
 

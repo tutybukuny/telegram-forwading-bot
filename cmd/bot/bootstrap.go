@@ -4,13 +4,21 @@ import (
 	"context"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"gorm.io/gorm"
 
 	"forwarding-bot/config"
+	"forwarding-bot/internal/model/entity"
+	channelrepo "forwarding-bot/internal/repository/channel"
+	mediamessagerepo "forwarding-bot/internal/repository/media-message"
+	commandservice "forwarding-bot/internal/service/command"
 	processservice "forwarding-bot/internal/service/forward-media"
+	channelstore "forwarding-bot/internal/storage/mysql/channel"
+	mediamessagestore "forwarding-bot/internal/storage/mysql/media-message"
 	"forwarding-bot/pkg/container"
 	"forwarding-bot/pkg/gpooling"
 	handleossignal "forwarding-bot/pkg/handle-os-signal"
 	"forwarding-bot/pkg/l"
+	"forwarding-bot/pkg/mysql"
 	telegrambot "forwarding-bot/pkg/telegram-bot"
 	validator "forwarding-bot/pkg/validator"
 )
@@ -32,6 +40,25 @@ func bootstrap(cfg *config.Config) {
 		return validator.New()
 	})
 
+	//region init store
+	db := mysql.New(cfg.MysqlConfig, ll)
+	mysql.AutoMigration(db, []any{
+		&entity.MediaMessage{}, &entity.Channel{},
+	}, ll)
+
+	container.NamedSingleton("db", func() *gorm.DB {
+		return db
+	})
+
+	container.NamedSingleton("mediaMessageRepo", func() mediamessagerepo.IRepo {
+		return mediamessagestore.New(db)
+	})
+
+	container.NamedSingleton("channelRepo", func() channelrepo.IRepo {
+		return channelstore.New(db)
+	})
+	//endregion
+
 	//region init agent
 	container.NamedSingleton("teleBot", func() *tgbotapi.BotAPI {
 		return telegrambot.New(cfg.TelegramBotConfig)
@@ -41,6 +68,9 @@ func bootstrap(cfg *config.Config) {
 	//region init service
 	container.NamedSingleton("processService", func() processservice.IService {
 		return processservice.New(cfg)
+	})
+	container.NamedSingleton("commandService", func() commandservice.IService {
+		return commandservice.New()
 	})
 	//endregion
 }
