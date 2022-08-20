@@ -1,6 +1,9 @@
 package main
 
 import (
+	"math/rand"
+	"time"
+
 	"forwarding-bot/config"
 	"forwarding-bot/pkg/container"
 	handleossignal "forwarding-bot/pkg/handle-os-signal"
@@ -11,6 +14,7 @@ import (
 func main() {
 	ll := l.New()
 	cfg := config.Load(ll)
+	rand.Seed(time.Now().UnixNano())
 
 	if cfg.SentryConfig.Enabled {
 		ll = l.NewWithSentry(&sentry.Configuration{

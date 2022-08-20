@@ -18,6 +18,7 @@ type Config struct {
 
 	ChannelConfigFile string `json:"channel_config_file" mapstructure:"channel_config_file"`
 	MaxPoolSize       int    `json:"max_pool_size" mapstructure:"max_pool_size"`
+	RateLimit         int    `json:"rate_limit" mapstructure:"rate_limit"`
 }
 
 // SentryConfig ...

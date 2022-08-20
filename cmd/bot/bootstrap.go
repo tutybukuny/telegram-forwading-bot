@@ -70,7 +70,7 @@ func bootstrap(cfg *config.Config) {
 		return processservice.New(cfg)
 	})
 	container.NamedSingleton("commandService", func() commandservice.IService {
-		return commandservice.New()
+		return commandservice.New(cfg.RateLimit)
 	})
 	//endregion
 }

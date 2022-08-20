@@ -11,6 +11,7 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/k0kubun/pp v3.0.1+incompatible
 	github.com/panjf2000/ants/v2 v2.5.0
+	github.com/sethvargo/go-limiter v0.7.2
 	github.com/spf13/viper v1.12.0
 	github.com/stretchr/testify v1.7.1
 	github.com/thnthien/impa v1.0.3
