@@ -45,10 +45,10 @@ func (r *repoImpl) GetRandomMessage(ctx context.Context, channelID int64, messag
 	var mediaMessage entity.MediaMessage
 	err := r.GetDB(ctx).Raw(query, messageType, channelID, messageType).Scan(&mediaMessage).Error
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
 		return nil, err
+	}
+	if mediaMessage.ID == 0 {
+		return nil, nil
 	}
 	return &mediaMessage, nil
 }
