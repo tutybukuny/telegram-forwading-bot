@@ -13,4 +13,5 @@ type IRepo interface {
 	repository.IFindByID[entity.MediaMessage, int64]
 
 	GetNextMessage(ctx context.Context, lastMsgID int64, messageType int) (*entity.MediaMessage, error)
+	GetRandomMessage(ctx context.Context, channelID int64, messageType int) (*entity.MediaMessage, error)
 }

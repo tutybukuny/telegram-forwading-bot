@@ -11,11 +11,13 @@ import (
 	channelrepo "forwarding-bot/internal/repository/channel"
 	channelmessagerepo "forwarding-bot/internal/repository/channel-message"
 	mediamessagerepo "forwarding-bot/internal/repository/media-message"
+	messagehistoryrepo "forwarding-bot/internal/repository/message-history"
 	commandservice "forwarding-bot/internal/service/command"
 	processservice "forwarding-bot/internal/service/forward-media"
 	channelstore "forwarding-bot/internal/storage/mysql/channel"
 	channelmessagestore "forwarding-bot/internal/storage/mysql/channel-message"
 	mediamessagestore "forwarding-bot/internal/storage/mysql/media-message"
+	messagehistorystore "forwarding-bot/internal/storage/mysql/message-history"
 	"forwarding-bot/pkg/container"
 	"forwarding-bot/pkg/gpooling"
 	handleossignal "forwarding-bot/pkg/handle-os-signal"
@@ -45,7 +47,8 @@ func bootstrap(cfg *config.Config) {
 	//region init store
 	db := mysql.New(cfg.MysqlConfig, ll)
 	mysql.AutoMigration(db, []any{
-		&entity.MediaMessage{}, &entity.Channel{}, &entity.ChannelMessage{},
+		&entity.MediaMessage{}, &entity.Channel{},
+		&entity.ChannelMessage{}, &entity.MessageHistory{},
 	}, ll)
 
 	container.NamedSingleton("db", func() *gorm.DB {
@@ -62,6 +65,10 @@ func bootstrap(cfg *config.Config) {
 
 	container.NamedSingleton("channelMessageRepo", func() channelmessagerepo.IRepo {
 		return channelmessagestore.New(db)
+	})
+
+	container.NamedSingleton("messageHistoryRepo", func() messagehistoryrepo.IRepo {
+		return messagehistorystore.New(db)
 	})
 	//endregion
 

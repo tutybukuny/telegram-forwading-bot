@@ -34,3 +34,21 @@ func (r *repoImpl) GetNextMessage(ctx context.Context, lastMsgID int64, messageT
 	}
 	return &obj, nil
 }
+
+func (r *repoImpl) GetRandomMessage(ctx context.Context, channelID int64, messageType int) (*entity.MediaMessage, error) {
+	query := `SELECT m.* FROM media_messages AS m 
+           		WHERE m.type = ? AND m.id NOT IN (SELECT mm.id FROM media_messages AS mm 
+           		                                 INNER JOIN message_histories AS mh ON mm.id = mh.media_message_id 
+           		                                                                           AND mh.channel_id = ? 
+           		                                                                           AND mh.message_type = ?)
+           		ORDER BY RAND() LIMIT 1`
+	var mediaMessage entity.MediaMessage
+	err := r.GetDB(ctx).Raw(query, messageType, channelID, messageType).Scan(&mediaMessage).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &mediaMessage, nil
+}

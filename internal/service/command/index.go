@@ -13,6 +13,7 @@ import (
 	channelrepo "forwarding-bot/internal/repository/channel"
 	channelmessagerepo "forwarding-bot/internal/repository/channel-message"
 	mediamessagerepo "forwarding-bot/internal/repository/media-message"
+	messagehistoryrepo "forwarding-bot/internal/repository/message-history"
 	"forwarding-bot/pkg/container"
 	"forwarding-bot/pkg/gpooling"
 	"forwarding-bot/pkg/l"
@@ -29,6 +30,7 @@ type serviceImpl struct {
 	mediaMessageRepo   mediamessagerepo.IRepo   `container:"name"`
 	channelRepo        channelrepo.IRepo        `container:"name"`
 	channelMessageRepo channelmessagerepo.IRepo `container:"name"`
+	messageHistoryRepo messagehistoryrepo.IRepo `container:"name"`
 
 	sendHelper *mediagroupsendhelper.MediaGroupSendHelper
 	limiter    limiter.Store

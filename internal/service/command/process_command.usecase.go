@@ -10,6 +10,7 @@ import (
 
 	commandtype "forwarding-bot/internal/constant/command-type"
 	mediamessagetype "forwarding-bot/internal/constant/media-message-type"
+	"forwarding-bot/internal/model/entity"
 	"forwarding-bot/pkg/l"
 )
 
@@ -61,14 +62,9 @@ func (s *serviceImpl) sendNudes(ctx context.Context, message *tgbotapi.Message, 
 		return err
 	}
 
-	channelMessage, err := s.channelMessageRepo.GetOrCreate(ctx, channelID, messageType)
+	mediaMsg, err := s.mediaMessageRepo.GetRandomMessage(ctx, channelID, messageType)
 	if err != nil {
-		s.ll.Error("cannot get or create channel message", l.Int64("channel_id", channelID), l.Int("message_type", messageType), l.Error(err))
-	}
-
-	mediaMsg, err := s.mediaMessageRepo.GetNextMessage(ctx, channelMessage.LastMediaMessageID, channelMessage.MessageType)
-	if err != nil {
-		s.ll.Error("cannot get next message", l.Object("channel", channel), l.Error(err))
+		s.ll.Error("cannot get random message", l.Object("channel", channel), l.Error(err))
 		return err
 	}
 	if mediaMsg == nil {
@@ -86,9 +82,13 @@ func (s *serviceImpl) sendNudes(ctx context.Context, message *tgbotapi.Message, 
 		if err != nil {
 			return err
 		}
-		channelMessage.LastMediaMessageID = mediaMsg.ID
-		if err = s.channelMessageRepo.Update(ctx, channelMessage); err != nil {
-			s.ll.Error("cannot save channel message", l.Object("channel_message", channelMessage), l.Error(err))
+		messageHistory := &entity.MessageHistory{
+			ChannelID:      channelID,
+			MediaMessageID: mediaMsg.ID,
+			MessageType:    messageType,
+		}
+		if err = s.messageHistoryRepo.Insert(ctx, messageHistory); err != nil {
+			s.ll.Error("cannot save message history", l.Object("message_history", messageHistory), l.Error(err))
 		}
 	}
 
