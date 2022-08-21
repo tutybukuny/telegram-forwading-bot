@@ -24,20 +24,20 @@ func New(db *gorm.DB) *repoImpl {
 	return &repoImpl{base, insert, update, find}
 }
 
-func (r *repoImpl) GetOrCreate(ctx context.Context, id int64) (*entity.Channel, error) {
-	channel, err := r.FindByID(ctx, id)
+func (r *repoImpl) GetOrCreate(ctx context.Context, channelID int64, channelName string) (*entity.Channel, error) {
+	obj, err := r.FindByID(ctx, channelID)
 	if err != nil {
 		return nil, err
 	}
-	if channel == nil {
-		channel = &entity.Channel{
-			ID:                 id,
-			LastMediaMessageID: 0,
+	if obj == nil {
+		obj = &entity.Channel{
+			ID:   channelID,
+			Name: channelName,
 		}
-		err = r.Insert(ctx, channel)
+		err = r.Insert(ctx, obj)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return channel, nil
+	return obj, nil
 }

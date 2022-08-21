@@ -13,5 +13,5 @@ type IRepo interface {
 	repository.IFindByID[entity.Channel, int64]
 	repository.IUpdate[entity.Channel, int64]
 
-	GetOrCreate(ctx context.Context, id int64) (*entity.Channel, error)
+	GetOrCreate(ctx context.Context, channelID int64, channelName string) (*entity.Channel, error)
 }

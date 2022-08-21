@@ -9,6 +9,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
 	commandtype "forwarding-bot/internal/constant/command-type"
+	mediamessagetype "forwarding-bot/internal/constant/media-message-type"
 	"forwarding-bot/pkg/l"
 )
 
@@ -33,32 +34,39 @@ nghe nhạc cho tĩnh cái tâm lại đi người https://www.youtube.com/watch
 
 func (s *serviceImpl) ProcessCommand(ctx context.Context, message *tgbotapi.Message) error {
 	switch message.Command() {
-	case commandtype.SendNudes:
-		return s.handleSendNudes(ctx, message)
+	case commandtype.NSFW:
+		return s.handleSendNudes(ctx, message, mediamessagetype.NSFW)
+	case commandtype.SFW:
+		return s.handleSendNudes(ctx, message, mediamessagetype.SFW)
 	default:
 		s.ll.Error("not handled command", l.String("command", message.Command()))
 		return errors.New("not handled command")
 	}
 }
 
-func (s *serviceImpl) handleSendNudes(ctx context.Context, message *tgbotapi.Message) error {
+func (s *serviceImpl) handleSendNudes(ctx context.Context, message *tgbotapi.Message, messageType int) error {
 	_, _, _, ok, err := s.limiter.Take(ctx, fmt.Sprintf("%d", message.Chat.ID))
 	if err != nil || ok {
-		return s.sendNudes(ctx, message)
+		return s.sendNudes(ctx, message, messageType)
 	}
 
 	return s.sendAdvice(ctx, message)
 }
 
-func (s *serviceImpl) sendNudes(ctx context.Context, message *tgbotapi.Message) error {
+func (s *serviceImpl) sendNudes(ctx context.Context, message *tgbotapi.Message, messageType int) error {
 	channelID := message.Chat.ID
-	channel, err := s.channelRepo.GetOrCreate(ctx, channelID)
+	channel, err := s.channelRepo.GetOrCreate(ctx, channelID, message.Chat.Title)
 	if err != nil {
 		s.ll.Error("cannot get or create channel", l.Int64("channel_id", channelID), l.Error(err))
 		return err
 	}
-	nextMessageID := channel.LastMediaMessageID + 1
-	mediaMsg, err := s.mediaMessageRepo.FindByID(ctx, nextMessageID)
+
+	channelMessage, err := s.channelMessageRepo.GetOrCreate(ctx, channelID, messageType)
+	if err != nil {
+		s.ll.Error("cannot get or create channel message", l.Int64("channel_id", channelID), l.Int("message_type", messageType), l.Error(err))
+	}
+
+	mediaMsg, err := s.mediaMessageRepo.GetNextMessage(ctx, channelMessage.LastMediaMessageID, channelMessage.MessageType)
 	if err != nil {
 		s.ll.Error("cannot get next message", l.Object("channel", channel), l.Error(err))
 		return err
@@ -78,9 +86,9 @@ func (s *serviceImpl) sendNudes(ctx context.Context, message *tgbotapi.Message) 
 		if err != nil {
 			return err
 		}
-		channel.LastMediaMessageID = mediaMsg.ID
-		if err = s.channelRepo.Update(ctx, channel); err != nil {
-			s.ll.Error("cannot save channel", l.Object("channel", channel), l.Error(err))
+		channelMessage.LastMediaMessageID = mediaMsg.ID
+		if err = s.channelMessageRepo.Update(ctx, channelMessage); err != nil {
+			s.ll.Error("cannot save channel message", l.Object("channel_message", channelMessage), l.Error(err))
 		}
 	}
 

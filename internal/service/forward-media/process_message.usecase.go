@@ -24,6 +24,7 @@ func (s *serviceImpl) ProcessMessage(ctx context.Context, message *tgbotapi.Mess
 	}
 
 	if channelConfig.IsDBChannel {
+		return nil
 		return s.handleDBChannel(ctx, channelConfig, message)
 	}
 

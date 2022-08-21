@@ -1,5 +1,6 @@
 package commandtype
 
 const (
-	SendNudes = "sendnudes"
+	NSFW = "nsfw"
+	SFW  = "sfw"
 )

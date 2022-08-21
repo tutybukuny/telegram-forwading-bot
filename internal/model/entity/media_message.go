@@ -91,6 +91,7 @@ func (u Messages) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {
 type MediaMessage struct {
 	ID        int64 `gorm:"primaryKey"`
 	Messages  Messages
+	Type      int `gorm:"index"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }

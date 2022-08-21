@@ -4,3 +4,4 @@ dist/
 
 .env
 config.json
+forwarding-config.json

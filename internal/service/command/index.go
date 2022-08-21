@@ -11,6 +11,7 @@ import (
 
 	mediagroupsendhelper "forwarding-bot/internal/pkg/helper/media-group"
 	channelrepo "forwarding-bot/internal/repository/channel"
+	channelmessagerepo "forwarding-bot/internal/repository/channel-message"
 	mediamessagerepo "forwarding-bot/internal/repository/media-message"
 	"forwarding-bot/pkg/container"
 	"forwarding-bot/pkg/gpooling"
@@ -22,11 +23,12 @@ type IService interface {
 }
 
 type serviceImpl struct {
-	ll               l.Logger               `container:"name"`
-	teleBot          *tgbotapi.BotAPI       `container:"name"`
-	gpooling         gpooling.IPool         `container:"name"`
-	mediaMessageRepo mediamessagerepo.IRepo `container:"name"`
-	channelRepo      channelrepo.IRepo      `container:"name"`
+	ll                 l.Logger                 `container:"name"`
+	teleBot            *tgbotapi.BotAPI         `container:"name"`
+	gpooling           gpooling.IPool           `container:"name"`
+	mediaMessageRepo   mediamessagerepo.IRepo   `container:"name"`
+	channelRepo        channelrepo.IRepo        `container:"name"`
+	channelMessageRepo channelmessagerepo.IRepo `container:"name"`
 
 	sendHelper *mediagroupsendhelper.MediaGroupSendHelper
 	limiter    limiter.Store
