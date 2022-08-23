@@ -94,6 +94,7 @@ func (s *serviceImpl) sendNudes(ctx context.Context, message *tgbotapi.Message, 
 			if err = s.messageHistoryRepo.Insert(ctx, messageHistory); err != nil {
 				s.ll.Error("cannot save message history", l.Object("message_history", messageHistory), l.Error(err))
 			}
+			break
 		}
 	}
 
