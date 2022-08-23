@@ -62,33 +62,38 @@ func (s *serviceImpl) sendNudes(ctx context.Context, message *tgbotapi.Message, 
 		return err
 	}
 
-	mediaMsg, err := s.mediaMessageRepo.GetRandomMessage(ctx, channelID, messageType)
-	if err != nil {
-		s.ll.Error("cannot get random message", l.Object("channel", channel), l.Error(err))
-		return err
-	}
-	if mediaMsg == nil {
-		s.gpooling.Submit(func() {
-			msg := tgbotapi.NewMessage(channelID, "Ôi các bạn ơi, xem sex ít thôi, làm gì có nhiều sex thế để mà các bạn xem \U0001F979")
-			sentMsg, err := s.teleBot.Send(msg)
-			if err != nil {
-				s.ll.Error("error when sent message", l.Object("msg", msg), l.Error(err))
-			}
-			s.ll.Debug("sent message", l.Object("sent_msg", sentMsg))
-
-		})
-	} else {
-		err = s.sendHelper.Send(channelID, mediaMsg)
+	for i := 0; i < 3; i++ {
+		mediaMsg, err := s.mediaMessageRepo.GetRandomMessage(ctx, channelID, messageType)
 		if err != nil {
+			s.ll.Error("cannot get random message", l.Object("channel", channel), l.Error(err))
 			return err
 		}
-		messageHistory := &entity.MessageHistory{
-			ChannelID:      channelID,
-			MediaMessageID: mediaMsg.ID,
-			MessageType:    messageType,
-		}
-		if err = s.messageHistoryRepo.Insert(ctx, messageHistory); err != nil {
-			s.ll.Error("cannot save message history", l.Object("message_history", messageHistory), l.Error(err))
+		if mediaMsg == nil {
+			s.gpooling.Submit(func() {
+				msg := tgbotapi.NewMessage(channelID, "Ôi các bạn ơi, xem sex ít thôi, làm gì có nhiều sex thế để mà các bạn xem \U0001F979")
+				sentMsg, err := s.teleBot.Send(msg)
+				if err != nil {
+					s.ll.Error("error when sent message", l.Object("msg", msg), l.Error(err))
+				}
+				s.ll.Debug("sent message", l.Object("sent_msg", sentMsg))
+
+			})
+		} else {
+			err = s.sendHelper.Send(channelID, mediaMsg)
+			if err != nil {
+				if mediaMsg.SourceChannelID != 0 {
+					s.ll.Error("cannot send message", l.Object("media_msg", mediaMsg), l.Error(err))
+				}
+				continue
+			}
+			messageHistory := &entity.MessageHistory{
+				ChannelID:      channelID,
+				MediaMessageID: mediaMsg.ID,
+				MessageType:    messageType,
+			}
+			if err = s.messageHistoryRepo.Insert(ctx, messageHistory); err != nil {
+				s.ll.Error("cannot save message history", l.Object("message_history", messageHistory), l.Error(err))
+			}
 		}
 	}
 

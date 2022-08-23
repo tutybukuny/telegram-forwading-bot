@@ -16,6 +16,7 @@ require (
 	github.com/stretchr/testify v1.7.1
 	github.com/thnthien/impa v1.0.3
 	go.uber.org/zap v1.22.0
+	gorm.io/datatypes v1.0.7
 	gorm.io/driver/mysql v1.3.6
 	gorm.io/gorm v1.23.8
 )
