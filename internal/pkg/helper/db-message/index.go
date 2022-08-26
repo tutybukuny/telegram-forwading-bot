@@ -2,10 +2,12 @@ package dbmessagehelper
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
+	mediamessagetype "forwarding-bot/internal/constant/media-message-type"
 	"forwarding-bot/internal/model/entity"
 	mediamessagerepo "forwarding-bot/internal/repository/media-message"
 	"forwarding-bot/pkg/container"
@@ -34,13 +36,19 @@ func New() *DBMessageHelper {
 }
 
 func (h *DBMessageHelper) Save(ctx context.Context, message *tgbotapi.Message) error {
-	if message.MediaGroupID != "" {
-		messages, ok := h.mediaGroupMap[message.MediaGroupID]
+	messageType, mediaGroupID := h.getCaptionInfo(message.Caption)
+	if messageType < 0 {
+		h.ll.Debug("not formatted use case")
+		return nil
+	}
+
+	if mediaGroupID != "" {
+		messages, ok := h.mediaGroupMap[mediaGroupID]
 		if !ok {
 			messages = make(chan *tgbotapi.Message)
-			h.mediaGroupMap[message.MediaGroupID] = messages
+			h.mediaGroupMap[mediaGroupID] = messages
 			h.gpooling.Submit(func() {
-				h.saveGroupMessages(ctx, message.MediaGroupID, messages)
+				h.saveGroupMessages(ctx, message.MediaGroupID, messages, messageType)
 			})
 		}
 		select {
@@ -49,7 +57,7 @@ func (h *DBMessageHelper) Save(ctx context.Context, message *tgbotapi.Message) e
 		return nil
 	} else {
 		files := h.buildFile(nil, message)
-		return h.saveMessages(ctx, files)
+		return h.saveMessages(ctx, files, messageType)
 	}
 }
 
@@ -86,12 +94,15 @@ func (h *DBMessageHelper) buildFile(files []entity.Message, message *tgbotapi.Me
 	return files
 }
 
-func (h *DBMessageHelper) saveMessages(ctx context.Context, messages []entity.Message) error {
+func (h *DBMessageHelper) saveMessages(ctx context.Context, messages []entity.Message, messageType int) error {
 	if len(messages) == 0 {
 		return nil
 	}
 
-	msg := &entity.MediaMessage{Messages: messages}
+	msg := &entity.MediaMessage{
+		Messages: messages,
+		Type:     messageType,
+	}
 
 	err := h.mediaMessageRepo.Insert(ctx, msg)
 	if err != nil {
@@ -101,7 +112,7 @@ func (h *DBMessageHelper) saveMessages(ctx context.Context, messages []entity.Me
 	return nil
 }
 
-func (h *DBMessageHelper) saveGroupMessages(ctx context.Context, mediaGroupID string, messages chan *tgbotapi.Message) error {
+func (h *DBMessageHelper) saveGroupMessages(ctx context.Context, mediaGroupID string, messages chan *tgbotapi.Message, messageType int) error {
 	defer delete(h.mediaGroupMap, mediaGroupID)
 	defer close(messages)
 
@@ -119,5 +130,24 @@ loop:
 		}
 	}
 
-	return h.saveMessages(ctx, files)
+	return h.saveMessages(ctx, files, messageType)
+}
+
+func (h *DBMessageHelper) getCaptionInfo(caption string) (messageType int, mediaGroupID string) {
+	messageType = -1
+	splits := strings.Split(caption, ";")
+	switch splits[0] {
+	case "nsfw":
+		messageType = mediamessagetype.NSFW
+	case "sfw":
+		messageType = mediamessagetype.SFW
+	case "others":
+		messageType = mediamessagetype.Others
+	default:
+		return
+	}
+	if len(splits) > 1 {
+		mediaGroupID = splits[1]
+	}
+	return
 }

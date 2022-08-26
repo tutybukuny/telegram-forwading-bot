@@ -76,7 +76,6 @@ func (s *serviceImpl) sendNudes(ctx context.Context, message *tgbotapi.Message, 
 					s.ll.Error("error when sent message", l.Object("msg", msg), l.Error(err))
 				}
 				s.ll.Debug("sent message", l.Object("sent_msg", sentMsg))
-
 			})
 		} else {
 			err = s.sendHelper.Send(channelID, mediaMsg)
@@ -94,8 +93,8 @@ func (s *serviceImpl) sendNudes(ctx context.Context, message *tgbotapi.Message, 
 			if err = s.messageHistoryRepo.Insert(ctx, messageHistory); err != nil {
 				s.ll.Error("cannot save message history", l.Object("message_history", messageHistory), l.Error(err))
 			}
-			break
 		}
+		break
 	}
 
 	return err
