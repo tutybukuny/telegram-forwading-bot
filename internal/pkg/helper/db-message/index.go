@@ -36,6 +36,12 @@ func New() *DBMessageHelper {
 }
 
 func (h *DBMessageHelper) Save(ctx context.Context, message *tgbotapi.Message) error {
+	defer func() {
+		if err := recover(); err != nil {
+			h.ll.Error("panic from something", l.Object("exception", err))
+		}
+	}()
+
 	messageType, mediaGroupID := h.getCaptionInfo(message.Caption)
 	if messageType < 0 {
 		h.ll.Debug("not formatted use case")
@@ -113,8 +119,8 @@ func (h *DBMessageHelper) saveMessages(ctx context.Context, messages []entity.Me
 }
 
 func (h *DBMessageHelper) saveGroupMessages(ctx context.Context, mediaGroupID string, messages chan *tgbotapi.Message, messageType int) error {
-	defer delete(h.mediaGroupMap, mediaGroupID)
 	defer close(messages)
+	defer delete(h.mediaGroupMap, mediaGroupID)
 
 	var files []entity.Message
 	timer := time.NewTimer(5 * time.Second)
