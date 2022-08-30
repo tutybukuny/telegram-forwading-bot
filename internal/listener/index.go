@@ -2,6 +2,7 @@ package listener
 
 import (
 	"context"
+	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"gorm.io/gorm"
@@ -43,6 +44,10 @@ func (tl *TelegramListener) Listen() {
 	ctx := context.Background()
 	var db *gorm.DB
 	container.NamedResolve(&db, "db")
+	bot, err := tl.teleBot.GetMe()
+	if err != nil {
+		tl.ll.Fatal("cannot get bot info", l.Error(err))
+	}
 
 	for update := range updates {
 		if update.Message == nil {
@@ -50,10 +55,16 @@ func (tl *TelegramListener) Listen() {
 		}
 
 		message := update.Message
-		tl.ll.Info("received message", l.Object("message", message))
+		tl.ll.Debug("received message", l.Object("message", message))
 
-		var err error
 		if message.IsCommand() {
+			if strings.Contains(message.Text, "@") {
+				at := strings.Split(message.CommandWithAt(), "@")[1]
+				if at != "" && at != bot.UserName {
+					tl.ll.Debug("command for other bots, ignore")
+					continue
+				}
+			}
 			err = middleware.NewGormTransaction(db, ctx, func(ctx context.Context) error {
 				return tl.commandService.ProcessCommand(ctx, message)
 			})
