@@ -58,9 +58,10 @@ func (tl *TelegramListener) Listen() {
 		tl.ll.Debug("received message", l.Object("message", message))
 
 		if message.IsCommand() {
-			if strings.Contains(message.Text, "@") {
-				at := strings.Split(message.CommandWithAt(), "@")[1]
-				if at != "" && at != bot.UserName {
+			commandElements := strings.Split(message.CommandWithAt(), "@")
+			if len(commandElements) > 1 && commandElements[1] != "" {
+				at := commandElements[1]
+				if at != bot.UserName {
 					tl.ll.Debug("command for other bots, ignore")
 					continue
 				}
